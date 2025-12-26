@@ -1,0 +1,90 @@
+{
+  "machine_id": "MVP_OUTLOOK",
+  "version": "1.0.0",
+  "entry_state": "START",
+  "states": {
+    "START": {
+      "type": "message",
+      "message": "Outlook issue. Is it (1) not opening (2) not sending (3) not receiving (4) error message? Reply 1-4.",
+      "next": "CAPTURE_PROBLEM"
+    },
+    "CAPTURE_PROBLEM": {
+      "type": "decision",
+      "routes": [
+        { "match_any": ["4", "error"], "next": "ASK_ERROR" },
+        { "match_any": ["1", "open", "opening"], "next": "SAFE_MODE" },
+        { "match_any": ["2", "send", "sending"], "next": "SEND_CHECK" },
+        { "match_any": ["3", "receive", "receiving"], "next": "RECEIVE_CHECK" }
+      ],
+      "default_next": "ASK_WEB_TEST"
+    },
+    "ASK_ERROR": {
+      "type": "message",
+      "message": "Copy/paste the exact error or code you see.",
+      "next": "ASK_WEB_TEST"
+    },
+    "ASK_WEB_TEST": {
+      "type": "message",
+      "message": "Quick isolation: does Outlook on the web work? Reply YES/NO.",
+      "next": "WEB_DECIDE"
+    },
+    "WEB_DECIDE": {
+      "type": "decision",
+      "routes": [
+        { "match_any": ["yes", "y"], "next": "CLIENT_FIX_MENU" },
+        { "match_any": ["no", "n"], "next": "ESCALATE" }
+      ],
+      "default_next": "ESCALATE"
+    },
+    "CLIENT_FIX_MENU": {
+      "type": "message",
+      "message": "Looks like a desktop client issue. Choose: (1) won’t open (2) not sending (3) not receiving. Reply 1-3.",
+      "next": "CLIENT_DECIDE"
+    },
+    "CLIENT_DECIDE": {
+      "type": "decision",
+      "routes": [
+        { "match_any": ["1", "open"], "next": "SAFE_MODE" },
+        { "match_any": ["2", "send"], "next": "SEND_CHECK" },
+        { "match_any": ["3", "receive"], "next": "RECEIVE_CHECK" }
+      ],
+      "default_next": "ESCALATE"
+    },
+    "SAFE_MODE": {
+      "type": "message",
+      "message": "Try Outlook Safe Mode: Win+R → outlook.exe /safe. Did it open? YES/NO.",
+      "next": "VERIFY"
+    },
+    "SEND_CHECK": {
+      "type": "message",
+      "message": "Check Work Offline: Send/Receive tab → ensure ‘Work Offline’ is OFF, then click Send/Receive. Did it send? YES/NO.",
+      "next": "VERIFY"
+    },
+    "RECEIVE_CHECK": {
+      "type": "message",
+      "message": "Click Send/Receive → Update Folder and check Junk/Other. Did new mail appear? YES/NO.",
+      "next": "VERIFY"
+    },
+    "VERIFY": {
+      "type": "decision",
+      "routes": [
+        { "match_any": ["yes", "worked", "fixed"], "next": "RESOLVED" },
+        { "match_any": ["no", "still", "failed"], "next": "ESCALATE" }
+      ],
+      "default_next": "ESCALATE"
+    },
+    "ESCALATE": {
+      "type": "message",
+      "message": "I’m escalating this to second line with full context so you don’t have to repeat yourself.",
+      "next": "END"
+    },
+    "RESOLVED": {
+      "type": "message",
+      "message": "Sorted. Outlook is working now. Closing this.",
+      "next": "END"
+    },
+    "END": {
+      "type": "terminal"
+    }
+  }
+}
