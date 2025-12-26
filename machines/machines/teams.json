@@ -1,0 +1,76 @@
+{
+  "machine_id": "MVP_TEAMS",
+  "version": "1.0.0",
+  "entry_state": "START",
+  "states": {
+    "START": {
+      "type": "message",
+      "message": "Teams issue. Are you using (1) desktop app or (2) browser? Reply 1/2.",
+      "next": "CAPTURE_PLATFORM"
+    },
+    "CAPTURE_PLATFORM": {
+      "type": "decision",
+      "routes": [
+        { "match_any": ["1", "desktop", "app"], "next": "ASK_SYMPTOM" },
+        { "match_any": ["2", "browser", "web"], "next": "ASK_SYMPTOM" }
+      ],
+      "default_next": "ASK_SYMPTOM"
+    },
+    "ASK_SYMPTOM": {
+      "type": "message",
+      "message": "What’s happening? (1) won’t open (2) stuck loading (3) can’t sign in (4) error message. Reply 1-4.",
+      "next": "SYMPTOM_DECIDE"
+    },
+    "SYMPTOM_DECIDE": {
+      "type": "decision",
+      "routes": [
+        { "match_any": ["4", "error"], "next": "ASK_ERROR" }
+      ],
+      "default_next": "ASK_WEB_TEST"
+    },
+    "ASK_ERROR": {
+      "type": "message",
+      "message": "Copy/paste the exact error or code.",
+      "next": "ASK_WEB_TEST"
+    },
+    "ASK_WEB_TEST": {
+      "type": "message",
+      "message": "Quick isolation: does Teams work in the browser? Reply YES/NO.",
+      "next": "WEB_TEST_DECIDE"
+    },
+    "WEB_TEST_DECIDE": {
+      "type": "decision",
+      "routes": [
+        { "match_any": ["yes", "y"], "next": "CACHE_GUIDE" },
+        { "match_any": ["no", "n"], "next": "ESCALATE" }
+      ],
+      "default_next": "ESCALATE"
+    },
+    "CACHE_GUIDE": {
+      "type": "message",
+      "message": "This looks like a desktop cache issue. Fully quit Teams, then clear cache (MVP guide): Win+R → %appdata%\\Microsoft\\Teams, delete contents, reopen Teams. Did it work? YES/NO.",
+      "next": "VERIFY"
+    },
+    "VERIFY": {
+      "type": "decision",
+      "routes": [
+        { "match_any": ["yes", "worked", "fixed"], "next": "RESOLVED" },
+        { "match_any": ["no", "still", "failed"], "next": "ESCALATE" }
+      ],
+      "default_next": "ESCALATE"
+    },
+    "ESCALATE": {
+      "type": "message",
+      "message": "I’m escalating this to second line with full context so you don’t have to repeat yourself.",
+      "next": "END"
+    },
+    "RESOLVED": {
+      "type": "message",
+      "message": "Sorted. Teams is working now. Closing this.",
+      "next": "END"
+    },
+    "END": {
+      "type": "terminal"
+    }
+  }
+}
