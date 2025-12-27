@@ -105,7 +105,7 @@ def handle_message(session_id: str, message: str):
         session["state"] = machine.get("entry_state", "START")
 
         # Immediately return first machine message
-        step = _step_machine(machine, session["state"], message_next="")
+        step = _step_machine(machine, session["state"], user_message="")
         session["state"] = step["state"]
         return {"reply": step["reply"], "state": session["state"]}
 
