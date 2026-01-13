@@ -1,9 +1,9 @@
+from db import init_db, get_session, save_session, log_event
 import json
 import os
 from typing import Dict, Any
 
 # In-memory session store (MVP). We’ll replace with SQLite next.
-SESSIONS: Dict[str, Dict[str, Any]] = {}
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MACHINES_DIR = os.path.join(os.path.dirname(BASE_DIR), "machines")
@@ -71,31 +71,37 @@ def _step_machine(machine: Dict[str, Any], state: str, user_message: str) -> Dic
 
     # Unknown type -> safe escalate
     return {"reply": "I’m escalating this to second line with full context.", "state": "END"}
-
+    init_db()
 def handle_message(session_id: str, message: str):
     """
     Deterministic engine:
     - If new session: ask which issue category (1/2/3)
     - If session has selected machine: run that machine step-by-step
     """
-    if session_id not in SESSIONS:
-        SESSIONS[session_id] = {
-            "stage": "ROUTING",
-            "machine_name": None,
-            "state": None
-        }
+        session = get_session(session_id)
+    if session is None:
+        session = {"stage": "ROUTING", "machine_name": "", "state": ""}
 
-    session = SESSIONS[session_id]
+    log_event(session_id, "user_message", message)
+
 
     # Stage 1: routing
     if session["stage"] == "ROUTING":
-        # First interaction: prompt user
-        if session["state"] is None:
-            session["state"] = "ASK_ROUTE"
-            return {
-                "reply": "Hi, I’m Novex. Is this about (1) password access, (2) Microsoft Teams, or (3) Outlook? Reply 1/2/3.",
-                "state": "ASK_ROUTE"
-            }
+    if session["state"] is None:
+        session["state"] = "ASK_ROUTE"
+
+        save_session(
+            session_id,
+            session["stage"],
+            session["machine_name"] or "",
+            session["state"]
+        )
+
+        return {
+            "reply": "Hi, I’m Novex. Is this about (1) password access, (2) Microsoft Teams, or (3) Outlook?",
+            "state": "ASK_ROUTE"
+        }
+
 
         # Second interaction: choose machine based on answer
         chosen = _route_issue(message)
@@ -103,6 +109,13 @@ def handle_message(session_id: str, message: str):
         machine = _load_machine(chosen)
         session["stage"] = "IN_MACHINE"
         session["state"] = machine.get("entry_state", "START")
+        save_session(
+    session_id,
+    session["stage"],
+    session["machine_name"],
+    session["state"]
+)
+
 
         # Immediately return first machine message
         step = _step_machine(machine, session["state"], user_message="")
@@ -123,4 +136,17 @@ def handle_message(session_id: str, message: str):
             continue
 
                 session["state"] = current_state
+            save_session(
+    session_id,
+    session["stage"],
+    session["machine_name"],
+    session["state"]
+)
+
+log_event(
+    session_id,
+    "assistant_reply",
+    step["reply"]
+)
+
         return {"reply": step["reply"], "state": current_state}
